@@ -1,0 +1,50 @@
+[
+  {
+    "feature": "Total_Spend_6M",
+    "mean_abs_shap": 0.3600248396396637,
+    "mean_signed_shap": 0.032665494829416275,
+    "direction": "positive"
+  },
+  {
+    "feature": "Active_Months_6M",
+    "mean_abs_shap": 0.27461615204811096,
+    "mean_signed_shap": -0.07708781957626343,
+    "direction": "negative"
+  },
+  {
+    "feature": "Recency_Months",
+    "mean_abs_shap": 0.20301151275634766,
+    "mean_signed_shap": 0.12213027477264404,
+    "direction": "positive"
+  },
+  {
+    "feature": "Total_Orders_6M",
+    "mean_abs_shap": 0.15633895993232727,
+    "mean_signed_shap": -0.036851897835731506,
+    "direction": "negative"
+  },
+  {
+    "feature": "Spend_Volatility_6M",
+    "mean_abs_shap": 0.11589637398719788,
+    "mean_signed_shap": -0.10378456860780716,
+    "direction": "negative"
+  },
+  {
+    "feature": "Average_Order_Value_6M",
+    "mean_abs_shap": 0.10116323083639145,
+    "mean_signed_shap": 0.029929151758551598,
+    "direction": "positive"
+  },
+  {
+    "feature": "Spend_Momentum",
+    "mean_abs_shap": 0.09782259911298752,
+    "mean_signed_shap": -0.02862626686692238,
+    "direction": "negative"
+  },
+  {
+    "feature": "Orders_Momentum",
+    "mean_abs_shap": 0.04464854672551155,
+    "mean_signed_shap": -0.02549227513372898,
+    "direction": "negative"
+  }
+]

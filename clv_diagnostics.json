@@ -1,0 +1,10 @@
+{
+  "status": "fit",
+  "customer_count": 5877,
+  "repeat_customer_count": 4187,
+  "prediction_days": 90,
+  "method": "expected_purchases_times_expected_aov_discounted",
+  "predicted_clv_min": -1020.2193599229689,
+  "predicted_clv_median": 100.41347421100048,
+  "predicted_clv_max": 68258.5511131238
+}

@@ -1,0 +1,75 @@
+{
+  "split_info": {
+    "train_start": "2009-12-01",
+    "train_end": "2010-12-01",
+    "val_start": "2011-01-01",
+    "val_end": "2011-04-01",
+    "test_start": "2011-05-01",
+    "test_end": "2011-09-01"
+  },
+  "baseline_temporal_test": {
+    "roc_auc": 0.7722133277172327,
+    "pr_auc": 0.8080348462510017,
+    "brier_score": 0.19527052342891693
+  },
+  "customer_holdout_test": {
+    "holdout_customers": 1175,
+    "train_rows": 25000,
+    "test_rows": 12000,
+    "roc_auc": 0.7152317133914559,
+    "pr_auc": 0.774757045389171,
+    "brier_score": 0.19474373757839203
+  },
+  "permutation_importance": [
+    {
+      "feature": "Recency_Months",
+      "delta_roc_auc": 0.08760020184517558,
+      "delta_pr_auc": 0.10191391379299997
+    },
+    {
+      "feature": "Total_Spend_6M",
+      "delta_roc_auc": 0.0575200180172194,
+      "delta_pr_auc": 0.03825037362326067
+    },
+    {
+      "feature": "Spend_Volatility_6M",
+      "delta_roc_auc": 0.022089492448625236,
+      "delta_pr_auc": 0.01293861743902891
+    },
+    {
+      "feature": "Active_Months_6M",
+      "delta_roc_auc": 0.021286420679966334,
+      "delta_pr_auc": 0.010657855529558224
+    },
+    {
+      "feature": "Spend_Momentum",
+      "delta_roc_auc": 0.018018999126251045,
+      "delta_pr_auc": 0.004153127347301222
+    },
+    {
+      "feature": "Total_Orders_6M",
+      "delta_roc_auc": 0.008981725362328219,
+      "delta_pr_auc": 0.001111576847624196
+    },
+    {
+      "feature": "Average_Order_Value_6M",
+      "delta_roc_auc": 0.007224396626183904,
+      "delta_pr_auc": 0.0006344740991731657
+    },
+    {
+      "feature": "Orders_Momentum",
+      "delta_roc_auc": 0.003459647169964164,
+      "delta_pr_auc": -0.002271479735888815
+    }
+  ],
+  "leak_stress_test": {
+    "with_explicit_label_copy_roc_auc": 1.0,
+    "with_explicit_label_copy_pr_auc": 0.9999999999999999,
+    "without_top2_features_removed_roc_auc": 0.7028841831141883,
+    "without_top2_features_removed_pr_auc": 0.7187462153299674,
+    "removed_features": [
+      "Recency_Months",
+      "Total_Spend_6M"
+    ]
+  }
+}

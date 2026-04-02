@@ -1,0 +1,211 @@
+{
+  "selected_model": "xgboost",
+  "selected_threshold": 0.34130001068115234,
+  "split_info": {
+    "train_start": "2009-12-01",
+    "train_end": "2010-12-01",
+    "val_start": "2011-01-01",
+    "val_end": "2011-04-01",
+    "test_start": "2011-05-01",
+    "test_end": "2011-09-01"
+  },
+  "latest_snapshot_month": "2011-12-01",
+  "model_comparison": {
+    "logistic_regression": {
+      "validation": {
+        "roc_auc": 0.7231436071853493,
+        "pr_auc": 0.7940845966621861,
+        "brier_score": 0.22162776749802596
+      },
+      "test": {
+        "roc_auc": 0.7368278990067143,
+        "pr_auc": 0.7553528938383439,
+        "brier_score": 0.21076024138464985,
+        "f1": 0.7073022488495267,
+        "precision": 0.7273214285714286,
+        "recall": 0.6883555856008112
+      },
+      "best_threshold": 0.18982
+    },
+    "random_forest": {
+      "validation": {
+        "roc_auc": 0.7308267143925657,
+        "pr_auc": 0.8129842983539435,
+        "brier_score": 0.2148315696953467
+      },
+      "test": {
+        "roc_auc": 0.7537217532549108,
+        "pr_auc": 0.7891481814650441,
+        "brier_score": 0.20407932990303138,
+        "f1": 0.7450628366247756,
+        "precision": 0.7203724159697018,
+        "recall": 0.7715058306574277
+      },
+      "best_threshold": 0.21404
+    },
+    "xgboost": {
+      "validation": {
+        "roc_auc": 0.7344603194360808,
+        "pr_auc": 0.8172292683840116,
+        "brier_score": 0.1851394772529602
+      },
+      "test": {
+        "roc_auc": 0.7629870155404311,
+        "pr_auc": 0.7987302545596247,
+        "brier_score": 0.19814467430114746,
+        "f1": 0.7800207807629509,
+        "precision": 0.6953817652507609,
+        "recall": 0.8881189792124388
+      },
+      "best_threshold": 0.34130001068115234
+    }
+  },
+  "selected_model_metrics": {
+    "roc_auc": 0.7629870155404311,
+    "pr_auc": 0.7987302545596247,
+    "brier_score": 0.19814467430114746,
+    "log_loss": 0.5794751016791857,
+    "accuracy": 0.7036,
+    "precision": 0.6953817652507609,
+    "recall": 0.8881189792124388,
+    "f1": 0.7800207807629509,
+    "confusion_matrix": [
+      [
+        1781,
+        2302
+      ],
+      [
+        662,
+        5255
+      ]
+    ],
+    "best_threshold_validation": 0.34130001068115234,
+    "threshold_metrics_test_at_0p5": {
+      "precision": 0.683362478141394,
+      "recall": 0.9246239648470509,
+      "f1": 0.7858938447173741,
+      "confusion_matrix": [
+        [
+          1548,
+          2535
+        ],
+        [
+          446,
+          5471
+        ]
+      ]
+    },
+    "calibration_curve": {
+      "mean_predicted_value": [
+        0.1461367690053303,
+        0.36881549334526065,
+        0.5091893608272076,
+        0.627768981218338,
+        0.7450134732236205,
+        0.7633382421787654,
+        0.7720755057133314,
+        0.8207475703320047,
+        0.8447209153064462
+      ],
+      "fraction_of_positives": [
+        0.137,
+        0.314,
+        0.486,
+        0.616,
+        0.4750593824228028,
+        0.7794392523364486,
+        0.7807933194154488,
+        0.8869374313940724,
+        0.813953488372093
+      ]
+    }
+  },
+  "feature_columns": [
+    "Total_Spend_6M",
+    "Total_Orders_6M",
+    "Average_Order_Value_6M",
+    "Active_Months_6M",
+    "Spend_Momentum",
+    "Orders_Momentum",
+    "Recency_Months",
+    "Spend_Volatility_6M"
+  ],
+  "feature_importance": {
+    "Active_Months_6M": 0.4924507439136505,
+    "Total_Orders_6M": 0.24230097234249115,
+    "Total_Spend_6M": 0.12088192999362946,
+    "Recency_Months": 0.03569255769252777,
+    "Average_Order_Value_6M": 0.033703021705150604,
+    "Spend_Volatility_6M": 0.029784509912133217,
+    "Spend_Momentum": 0.024902965873479843,
+    "Orders_Momentum": 0.020283304154872894
+  },
+  "shap_summary": [
+    {
+      "feature": "Total_Spend_6M",
+      "mean_abs_shap": 0.3600248396396637,
+      "mean_signed_shap": 0.032665494829416275,
+      "direction": "positive"
+    },
+    {
+      "feature": "Active_Months_6M",
+      "mean_abs_shap": 0.27461615204811096,
+      "mean_signed_shap": -0.07708781957626343,
+      "direction": "negative"
+    },
+    {
+      "feature": "Recency_Months",
+      "mean_abs_shap": 0.20301151275634766,
+      "mean_signed_shap": 0.12213027477264404,
+      "direction": "positive"
+    },
+    {
+      "feature": "Total_Orders_6M",
+      "mean_abs_shap": 0.15633895993232727,
+      "mean_signed_shap": -0.036851897835731506,
+      "direction": "negative"
+    },
+    {
+      "feature": "Spend_Volatility_6M",
+      "mean_abs_shap": 0.11589637398719788,
+      "mean_signed_shap": -0.10378456860780716,
+      "direction": "negative"
+    },
+    {
+      "feature": "Average_Order_Value_6M",
+      "mean_abs_shap": 0.10116323083639145,
+      "mean_signed_shap": 0.029929151758551598,
+      "direction": "positive"
+    },
+    {
+      "feature": "Spend_Momentum",
+      "mean_abs_shap": 0.09782259911298752,
+      "mean_signed_shap": -0.02862626686692238,
+      "direction": "negative"
+    },
+    {
+      "feature": "Orders_Momentum",
+      "mean_abs_shap": 0.04464854672551155,
+      "mean_signed_shap": -0.02549227513372898,
+      "direction": "negative"
+    }
+  ],
+  "clv_diagnostics": {
+    "status": "fit",
+    "customer_count": 5877,
+    "repeat_customer_count": 4187,
+    "prediction_days": 90,
+    "method": "expected_purchases_times_expected_aov_discounted",
+    "predicted_clv_min": -1020.2193599229689,
+    "predicted_clv_median": 100.41347421100048,
+    "predicted_clv_max": 68258.5511131238
+  },
+  "portfolio_statistics": {
+    "serving_customers": 5878,
+    "mean_risk_score": 0.6143047213554382,
+    "mean_predicted_clv": 368.61638961482697,
+    "mean_expected_revenue_at_risk": 101.39220225984928,
+    "high_risk_customers": 4211,
+    "high_value_customers": 1959
+  }
+}
