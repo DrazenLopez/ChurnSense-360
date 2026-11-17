@@ -198,6 +198,7 @@ def run_engine():
     combined_train = pd.concat([X_train, X_val], ignore_index=True)
     combined_target = pd.concat([y_train, y_val], ignore_index=True)
     selected_model.fit(combined_train, combined_target)
+    selected_feature_importance = _extract_feature_importance(selected_model, selected_model_name, FEATURE_COLUMNS)
 
     validation_for_threshold = evaluate_classifier(candidates[selected_model_name].fit(X_train, y_train), X_val, y_val)
     selected_threshold = float(validation_for_threshold['best_threshold'])
@@ -233,8 +234,14 @@ def run_engine():
     else:
         # Fallback reason text for non-tree models.
         shap_values = np.zeros((len(merged_serving), len(FEATURE_COLUMNS)))
+        # Weight each feature's standardised deviation from the median by the model's importance,
+        # so the "primary driver" is not simply whichever feature has the biggest raw number.
+        feature_frame = merged_serving[FEATURE_COLUMNS]
+        spread = feature_frame.std().replace(0, 1.0)
+        weights = pd.Series(selected_feature_importance).reindex(FEATURE_COLUMNS).fillna(0.0)
+        driver_scores = ((feature_frame - feature_frame.median()) / spread).abs().mul(weights, axis=1)
         top_reason_series = pd.Series([
-            f'Primary driver: {feature}' for feature in merged_serving[FEATURE_COLUMNS].abs().idxmax(axis=1)
+            f'Primary driver: {feature}' for feature in driver_scores.idxmax(axis=1)
         ], index=merged_serving.index)
         shap_summary = [
             {
@@ -310,7 +317,6 @@ def run_engine():
     available_columns = [column for column in export_columns if column in enriched_export.columns]
     enriched_export[available_columns].to_csv('enriched_data.csv', index=False)
 
-    selected_feature_importance = _extract_feature_importance(selected_model, selected_model_name, FEATURE_COLUMNS)
     model_comparison_rows = []
     for model_name, report in model_reports.items():
         model_comparison_rows.append(

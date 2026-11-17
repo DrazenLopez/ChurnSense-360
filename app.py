@@ -15,7 +15,8 @@ from sklearn.metrics import roc_auc_score, average_precision_score, precision_re
 from retention_engine import FEATURE_COLUMNS as DEFAULT_MODEL_FEATURE_COLUMNS
 
 AUTH_USERNAME = os.getenv('CHURNSENSE_USERNAME', 'admin')
-AUTH_PASSWORD = os.getenv('CHURNSENSE_PASSWORD', '123')
+AUTH_PASSWORD = os.getenv('CHURNSENSE_PASSWORD')  # no default: login is only enforced when a password is configured
+AUTH_ENABLED = bool(AUTH_PASSWORD)
 
 st.set_page_config(page_title="Customer Intelligence Portal", layout="wide")
 
@@ -324,7 +325,8 @@ def animated_plotly_chart(figure, *, key: str, use_container_width: bool = True,
 # session_state persists per user session, allowing stateful authentication
 # so login status is remembered across reruns until the session ends.
 if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+    # Public demo mode (no password configured) skips the login screen.
+    st.session_state.authenticated = not AUTH_ENABLED
 
 if not st.session_state.authenticated:
     st.markdown('<div class="login-shell">', unsafe_allow_html=True)
@@ -1446,7 +1448,7 @@ with tab1:
     n1.metric("Stable Accounts", f"{stable_accounts:,}")
     n2.metric("VIP Member Accounts", f"{vip_member_accounts:,}")
     n3.metric("Total Portfolio Revenue", f"£{total_portfolio_revenue:,.0f}")
-    n4.metric("Retention Rate", f"{retention_rate:.1%}")
+    n4.metric("Low-Risk Share", f"{retention_rate:.1%}", help="Share of customers with a risk score below 20%. This is a model-based share, not a measured retention rate.")
 
     st.markdown("### Most Contributed Accounts (Profit Leaders)")
     contributed_accounts['Status'] = np.select(
