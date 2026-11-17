@@ -1,50 +1,50 @@
 [
   {
+    "feature": "Recency_Months",
+    "mean_abs_shap": 0.49997395277023315,
+    "mean_signed_shap": 0.31720736622810364,
+    "direction": "positive"
+  },
+  {
     "feature": "Total_Spend_6M",
-    "mean_abs_shap": 0.3600248396396637,
-    "mean_signed_shap": 0.032665494829416275,
+    "mean_abs_shap": 0.3085680305957794,
+    "mean_signed_shap": 0.08401541411876678,
     "direction": "positive"
   },
   {
     "feature": "Active_Months_6M",
-    "mean_abs_shap": 0.27461615204811096,
-    "mean_signed_shap": -0.07708781957626343,
+    "mean_abs_shap": 0.29548805952072144,
+    "mean_signed_shap": -0.01930815353989601,
     "direction": "negative"
   },
   {
-    "feature": "Recency_Months",
-    "mean_abs_shap": 0.20301151275634766,
-    "mean_signed_shap": 0.12213027477264404,
-    "direction": "positive"
+    "feature": "Total_Orders_6M",
+    "mean_abs_shap": 0.17147424817085266,
+    "mean_signed_shap": -0.02363152988255024,
+    "direction": "negative"
   },
   {
-    "feature": "Total_Orders_6M",
-    "mean_abs_shap": 0.15633895993232727,
-    "mean_signed_shap": -0.036851897835731506,
+    "feature": "Spend_Momentum",
+    "mean_abs_shap": 0.16781407594680786,
+    "mean_signed_shap": -0.060054242610931396,
     "direction": "negative"
   },
   {
     "feature": "Spend_Volatility_6M",
-    "mean_abs_shap": 0.11589637398719788,
-    "mean_signed_shap": -0.10378456860780716,
+    "mean_abs_shap": 0.09945077449083328,
+    "mean_signed_shap": -0.09118881821632385,
     "direction": "negative"
   },
   {
     "feature": "Average_Order_Value_6M",
-    "mean_abs_shap": 0.10116323083639145,
-    "mean_signed_shap": 0.029929151758551598,
+    "mean_abs_shap": 0.059782158583402634,
+    "mean_signed_shap": 0.004128965549170971,
     "direction": "positive"
   },
   {
-    "feature": "Spend_Momentum",
-    "mean_abs_shap": 0.09782259911298752,
-    "mean_signed_shap": -0.02862626686692238,
-    "direction": "negative"
-  },
-  {
     "feature": "Orders_Momentum",
-    "mean_abs_shap": 0.04464854672551155,
-    "mean_signed_shap": -0.02549227513372898,
+    "mean_abs_shap": 0.03284665197134018,
+    "mean_signed_shap": -0.01431986503303051,
     "direction": "negative"
   }
 ]

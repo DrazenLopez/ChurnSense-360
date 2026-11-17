@@ -345,8 +345,6 @@ def select_best_model(model_reports: Dict[str, Dict[str, object]]) -> str:
 
 def fit_clv_model(transactions: pd.DataFrame, cutoff_date: pd.Timestamp, prediction_days: int = 90) -> Tuple[pd.DataFrame, Dict[str, object]]:
     history = transactions[transactions['InvoiceDate'] <= cutoff_date].copy()
-    # Returns/credit notes carry negative values and break the Gamma-Gamma spend model; fit on purchases only.
-    history = history[history['Total_Value'] > 0]
     summary = summary_data_from_transaction_data(
         history,
         customer_id_col='Customer ID',

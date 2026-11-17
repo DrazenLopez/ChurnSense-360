@@ -1,0 +1,112 @@
+{
+  "baselines_on_test": {
+    "model": {
+      "roc_auc": 0.7724546031515812,
+      "pr_auc": 0.8099724746338932
+    },
+    "rule_recency_months": {
+      "roc_auc": 0.6428101183027803,
+      "pr_auc": 0.6377082632299146
+    },
+    "rule_few_active_months": {
+      "roc_auc": 0.6938910127943037,
+      "pr_auc": 0.7076469422995475
+    },
+    "rule_low_recent_spend": {
+      "roc_auc": 0.6938401417171353,
+      "pr_auc": 0.7134170597220229
+    },
+    "base_rate_leaving": 0.5917
+  },
+  "lift_on_test": [
+    {
+      "top_fraction": 0.05,
+      "customers_contacted": 500,
+      "precision": 0.908,
+      "lift_vs_random": 1.5345614331586954,
+      "share_of_leavers_caught": 0.07672807165793477
+    },
+    {
+      "top_fraction": 0.1,
+      "customers_contacted": 1000,
+      "precision": 0.909,
+      "lift_vs_random": 1.5362514787899273,
+      "share_of_leavers_caught": 0.15362514787899273
+    },
+    {
+      "top_fraction": 0.2,
+      "customers_contacted": 2000,
+      "precision": 0.881,
+      "lift_vs_random": 1.4889302011154302,
+      "share_of_leavers_caught": 0.297786040223086
+    },
+    {
+      "top_fraction": 0.3,
+      "customers_contacted": 3000,
+      "precision": 0.84,
+      "lift_vs_random": 1.4196383302349163,
+      "share_of_leavers_caught": 0.4258914990704749
+    },
+    {
+      "top_fraction": 0.5,
+      "customers_contacted": 5000,
+      "precision": 0.788,
+      "lift_vs_random": 1.3317559574108502,
+      "share_of_leavers_caught": 0.6658779787054251
+    }
+  ],
+  "cost_based_threshold_on_validation": {
+    "cost_missed_leaver": 5.0,
+    "cost_wasted_offer": 1.0,
+    "theoretical_threshold": 0.16666666666666666,
+    "empirical_threshold": 0.148,
+    "expected_cost_at_empirical": 3050.0,
+    "share_flagged_at_empirical": 0.9491
+  },
+  "unseen_customers": {
+    "roc_auc": 0.7685876032378238,
+    "pr_auc": 0.8129139665231901,
+    "held_out_customers": 1175,
+    "train_rows": 20000,
+    "test_rows": 5875,
+    "base_rate_leaving": 0.5911489361702128,
+    "lift": [
+      {
+        "top_fraction": 0.05,
+        "customers_contacted": 294,
+        "precision": 0.935374149659864,
+        "lift_vs_random": 1.5822986263321914,
+        "share_of_leavers_caught": 0.07918226317304923
+      },
+      {
+        "top_fraction": 0.1,
+        "customers_contacted": 588,
+        "precision": 0.9251700680272109,
+        "lift_vs_random": 1.5650371867722037,
+        "share_of_leavers_caught": 0.15663691333141377
+      },
+      {
+        "top_fraction": 0.2,
+        "customers_contacted": 1175,
+        "precision": 0.8970212765957447,
+        "lift_vs_random": 1.5174200978980708,
+        "share_of_leavers_caught": 0.3034840195796142
+      },
+      {
+        "top_fraction": 0.3,
+        "customers_contacted": 1762,
+        "precision": 0.8530079455164585,
+        "lift_vs_random": 1.4429662193807065,
+        "share_of_leavers_caught": 0.43276706017852
+      },
+      {
+        "top_fraction": 0.5,
+        "customers_contacted": 2938,
+        "precision": 0.7773995915588836,
+        "lift_vs_random": 1.3150655342379616,
+        "share_of_leavers_caught": 0.6576446875899798
+      }
+    ]
+  },
+  "note": "Cost values are placeholders; set CHURNSENSE_COST_MISSED_LEAVER / CHURNSENSE_COST_WASTED_OFFER."
+}

@@ -8,3 +8,4 @@ xgboost==2.1.1
 lifetimes==0.11.3
 pyarrow==17.0.0
 openpyxl==3.1.5
+matplotlib==3.9.2
