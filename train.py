@@ -12,6 +12,12 @@ import shap
 from sklearn.base import clone
 from sklearn.metrics import precision_recall_curve
 
+from evaluation import (
+    baseline_report,
+    cost_based_threshold,
+    lift_table,
+    unseen_customer_report,
+)
 from retention_engine import (
     FEATURE_COLUMNS,
     build_customer_month_panel,
@@ -38,6 +44,7 @@ OUTPUT_FILES = [
     'marketing_strategy.csv',
     'churn_model.pkl',
     'model_comparison.csv',
+    'model_evaluation.json',
 ]
 
 
@@ -135,8 +142,8 @@ def run_engine():
     started_at = time.perf_counter()
 
     file_path = 'online_retail_II.xlsx'
-    if not Path(file_path).exists():
-        print('Error: Target Excel file not found.')
+    if not Path(file_path).exists() and not Path('fast_retail_data.csv').exists():
+        print('Error: neither fast_retail_data.csv nor online_retail_II.xlsx was found.')
         return
 
     print('Status: Ingesting retail transactions...', flush=True)
@@ -154,6 +161,7 @@ def run_engine():
     print(f'Status: Temporal split ready in {time.perf_counter() - stage_at:.1f}s', flush=True)
 
     stage_at = time.perf_counter()
+    full_labeled = pd.concat([train_df, val_df, test_df], ignore_index=True)
     train_df = _limit_frame_size(train_df, max_rows=20000, random_state=42)
     val_df = _limit_frame_size(val_df, max_rows=10000, random_state=42)
     test_df = _limit_frame_size(test_df, max_rows=10000, random_state=42)
@@ -194,14 +202,37 @@ def run_engine():
     selected_model_name = select_best_model(model_reports)
     print(f'Status: Selected model => {selected_model_name}', flush=True)
 
-    selected_model = candidates[selected_model_name]
+    # Threshold is tuned on validation with a model fitted on the training months only.
+    # The served model is a separate copy refitted on train+validation. (Using one object for both
+    # would silently overwrite the train+validation fit with a train-only fit.)
+    threshold_model = clone(candidates[selected_model_name]).fit(X_train, y_train)
+    validation_for_threshold = evaluate_classifier(threshold_model, X_val, y_val)
+    selected_threshold = float(validation_for_threshold['best_threshold'])
+
+    selected_model = clone(candidates[selected_model_name])
     combined_train = pd.concat([X_train, X_val], ignore_index=True)
     combined_target = pd.concat([y_train, y_val], ignore_index=True)
     selected_model.fit(combined_train, combined_target)
-
-    validation_for_threshold = evaluate_classifier(candidates[selected_model_name].fit(X_train, y_train), X_val, y_val)
-    selected_threshold = float(validation_for_threshold['best_threshold'])
+    selected_feature_importance = _extract_feature_importance(selected_model, selected_model_name, FEATURE_COLUMNS)
     selected_test_report = evaluate_classifier(selected_model, X_test, y_test)
+
+    print('Status: Running extra evaluation (baselines, lift, unseen customers, cost threshold)...', flush=True)
+    stage_at = time.perf_counter()
+    test_proba = selected_model.predict_proba(X_test)[:, 1]
+    val_proba = threshold_model.predict_proba(X_val)[:, 1]
+    extended_evaluation = {
+        'baselines_on_test': baseline_report(test_df, test_proba),
+        'lift_on_test': lift_table(y_test, test_proba),
+        'cost_based_threshold_on_validation': cost_based_threshold(y_val, val_proba),
+        'unseen_customers': unseen_customer_report(
+            full_labeled,
+            FEATURE_COLUMNS,
+            lambda: build_model_candidates(random_state=42)[selected_model_name],
+            test_start=pd.Timestamp(split_info['test_start']),
+        ),
+        'note': 'Cost values are placeholders; set CHURNSENSE_COST_MISSED_LEAVER / CHURNSENSE_COST_WASTED_OFFER.',
+    }
+    print(f'Status: Extra evaluation done in {time.perf_counter() - stage_at:.1f}s', flush=True)
 
     print('Status: Fitting CLV model...', flush=True)
     stage_at = time.perf_counter()
@@ -233,8 +264,14 @@ def run_engine():
     else:
         # Fallback reason text for non-tree models.
         shap_values = np.zeros((len(merged_serving), len(FEATURE_COLUMNS)))
+        # Weight each feature's standardised deviation from the median by the model's importance,
+        # so the "primary driver" is not simply whichever feature has the biggest raw number.
+        feature_frame = merged_serving[FEATURE_COLUMNS]
+        spread = feature_frame.std().replace(0, 1.0)
+        weights = pd.Series(selected_feature_importance).reindex(FEATURE_COLUMNS).fillna(0.0)
+        driver_scores = ((feature_frame - feature_frame.median()) / spread).abs().mul(weights, axis=1)
         top_reason_series = pd.Series([
-            f'Primary driver: {feature}' for feature in merged_serving[FEATURE_COLUMNS].abs().idxmax(axis=1)
+            f'Primary driver: {feature}' for feature in driver_scores.idxmax(axis=1)
         ], index=merged_serving.index)
         shap_summary = [
             {
@@ -310,7 +347,6 @@ def run_engine():
     available_columns = [column for column in export_columns if column in enriched_export.columns]
     enriched_export[available_columns].to_csv('enriched_data.csv', index=False)
 
-    selected_feature_importance = _extract_feature_importance(selected_model, selected_model_name, FEATURE_COLUMNS)
     model_comparison_rows = []
     for model_name, report in model_reports.items():
         model_comparison_rows.append(
@@ -395,6 +431,9 @@ def run_engine():
 
     with open('clv_diagnostics.json', 'w') as f:
         json.dump(clv_diagnostics, f, indent=2)
+
+    with open('model_evaluation.json', 'w') as f:
+        json.dump(extended_evaluation, f, indent=2)
 
     with open('training_baseline.json', 'w') as f:
         json.dump(

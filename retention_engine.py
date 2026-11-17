@@ -397,7 +397,7 @@ def fit_clv_model(transactions: pd.DataFrame, cutoff_date: pd.Timestamp, predict
     summary['Predicted_CLV'] = summary['Expected_Purchases'] * summary['Expected_AOV'] * horizon_discount
 
     valid_clv = summary['Predicted_CLV'].replace([np.inf, -np.inf], np.nan)
-    summary['Predicted_CLV'] = valid_clv.fillna(valid_clv.median())
+    summary['Predicted_CLV'] = valid_clv.fillna(valid_clv.median()).clip(lower=0.0)
     summary['CLV_Segment'] = pd.qcut(summary['Predicted_CLV'].rank(method='first'), q=3, labels=['Low', 'Medium', 'High'])
 
     diagnostics = {
