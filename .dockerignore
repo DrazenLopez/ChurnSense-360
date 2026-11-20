@@ -4,3 +4,5 @@ tests/
 # Raw data is only needed for retraining, not for serving the dashboard
 fast_retail_data.csv
 online_retail_II.xlsx
+legacy_demo/
+.github/

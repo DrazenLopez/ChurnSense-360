@@ -6,6 +6,7 @@ import plotly.io as pio
 import numpy as np
 import pickle
 import os
+import io
 import json
 import shap
 import time
@@ -13,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, average_precision_score, precision_recall_curve
 
 from retention_engine import FEATURE_COLUMNS as DEFAULT_MODEL_FEATURE_COLUMNS
+from reasons import explain_frame, join_reasons
 
 AUTH_USERNAME = os.getenv('CHURNSENSE_USERNAME', 'admin')
 AUTH_PASSWORD = os.getenv('CHURNSENSE_PASSWORD')  # no default: login is only enforced when a password is configured
@@ -402,11 +404,18 @@ if not st.session_state.authenticated:
 
     st.stop()
 
-# Stateful metric baselines ensure UI always has values before model diagnostics are injected.
+def fmt_metric(value, digits: int = 2, percent: bool = False) -> str:
+    """Format a model metric, or show N/A when it is genuinely unavailable (never a made-up number)."""
+    if value is None:
+        return 'N/A'
+    return f"{value:.{digits}%}" if percent else f"{value:.{digits}f}"
+
+
+# Metrics stay None until real diagnostics are loaded or computed from the model.
 if 'roc_auc' not in st.session_state:
-    st.session_state['roc_auc'] = 0.85
+    st.session_state['roc_auc'] = None
 if 'pr_auc' not in st.session_state:
-    st.session_state['pr_auc'] = 0.82
+    st.session_state['pr_auc'] = None
 
 st.markdown("# **ChurnSense:360**")
 st.sidebar.markdown("## ChurnSense:360 | Enterprise Edition")
@@ -954,8 +963,10 @@ spending_history_df = load_spending_history()
 training_baseline = load_training_baseline()
 
 if model_diagnostics is not None:
-    st.session_state['roc_auc'] = float(model_diagnostics.get('roc_auc', st.session_state['roc_auc']))
-    st.session_state['pr_auc'] = float(model_diagnostics.get('pr_auc', st.session_state['pr_auc']))
+    if model_diagnostics.get('roc_auc') is not None:
+        st.session_state['roc_auc'] = float(model_diagnostics['roc_auc'])
+    if model_diagnostics.get('pr_auc') is not None:
+        st.session_state['pr_auc'] = float(model_diagnostics['pr_auc'])
 else:
     data_mtime = os.path.getmtime('enriched_data.csv') if os.path.exists('enriched_data.csv') else 0
     model_mtime = os.path.getmtime('churn_model.pkl') if os.path.exists('churn_model.pkl') else 0
@@ -965,7 +976,7 @@ else:
         st.session_state['roc_auc'] = float(computed_diagnostics['roc_auc'])
         st.session_state['pr_auc'] = float(computed_diagnostics['pr_auc'])
 
-feature_store_path = 'processed_data.csv'
+feature_store_path = 'enriched_data.csv'
 feature_store_size_mb = (os.path.getsize(feature_store_path) / (1024 * 1024)) if os.path.exists(feature_store_path) else None
 
 required_schema = {'Customer_ID', 'Risk_Score', 'Is_Leaving', 'Predicted_CLV', 'CLV_Segment', 'Recommended_Action'}
@@ -1418,7 +1429,7 @@ with tab1:
     m1.metric("Accounts at Risk", f"{len(at_risk_accounts):,}")
     m2.metric("Revenue at Risk", f"£{revenue_at_risk_value:,.0f}")
     m3.metric("Recoverable Opportunity", f"£{recoverable_revenue_opportunity:,.0f}")
-    m4.metric("Detection Reliability (PR-AUC)", f"{st.session_state.get('pr_auc', 0.82):.1%}")
+    m4.metric("Detection Reliability (PR-AUC)", fmt_metric(st.session_state.get('pr_auc'), digits=1, percent=True))
     st.caption("Accounts at Risk is based on predicted churn, not the historical `Is_Leaving` label, because the serving snapshot does not contain future outcomes.")
 
     strategic_base = df.copy()
@@ -1569,6 +1580,72 @@ with tab1:
         .background_gradient(subset=['Risk_Score'], cmap='RdYlGn_r')
     )
     st.dataframe(registry_view, use_container_width=True, hide_index=True)
+
+    st.divider()
+
+    st.subheader("Save-First List")
+    st.caption(
+        "Customers ranked by expected revenue at risk = churn probability x 90-day value forecast. "
+        "Reasons are the model's biggest drivers for each customer, in plain English."
+    )
+    sf1, sf2 = st.columns(2)
+    save_first_count = sf1.slider("Customers to show", min_value=10, max_value=200, value=25, step=5, key='save_first_count')
+    save_first_min_risk = sf2.slider(
+        "Minimum churn risk", min_value=0.0, max_value=1.0, value=float(min(max(selected_threshold, 0.0), 1.0)),
+        step=0.05, key='save_first_min_risk',
+    )
+    if {'Expected_Revenue_at_Risk', 'Risk_Score', 'Predicted_CLV'}.issubset(df.columns) and model is not None:
+        save_first = (
+            df[df['Risk_Score'] >= save_first_min_risk]
+            .sort_values('Expected_Revenue_at_Risk', ascending=False)
+            .head(save_first_count)
+            .copy()
+        )
+        if save_first.empty:
+            st.info("No customers at or above that risk level.")
+        else:
+            feature_matrix = save_first[MODEL_FEATURE_COLUMNS].astype(float)
+            save_first['Why'] = [join_reasons(item) for item in explain_frame(get_shap_explainer(model), feature_matrix, n=3, reference=df[MODEL_FEATURE_COLUMNS].median().to_dict())]
+            save_first.insert(0, 'Rank', range(1, len(save_first) + 1))
+            export_columns = ['Rank', 'Customer_ID', 'Risk_Score', 'Predicted_CLV', 'Expected_Revenue_at_Risk', 'Recommended_Action', 'Why']
+            export_frame = save_first[[column for column in export_columns if column in save_first.columns]].rename(columns={
+                'Customer_ID': 'Customer ID',
+                'Risk_Score': 'Churn risk',
+                'Predicted_CLV': '90-day value forecast (GBP)',
+                'Expected_Revenue_at_Risk': 'Expected revenue at risk (GBP)',
+                'Recommended_Action': 'Recommended action',
+            })
+            st.dataframe(
+                export_frame.style.format({
+                    'Churn risk': '{:.0%}',
+                    '90-day value forecast (GBP)': '£{:,.0f}',
+                    'Expected revenue at risk (GBP)': '£{:,.0f}',
+                }),
+                use_container_width=True,
+                hide_index=True,
+            )
+            d1, d2 = st.columns(2)
+            d1.download_button(
+                "Download CSV",
+                data=export_frame.to_csv(index=False).encode('utf-8'),
+                file_name='churnsense_save_first.csv',
+                mime='text/csv',
+                use_container_width=True,
+            )
+            try:
+                excel_buffer = io.BytesIO()
+                export_frame.to_excel(excel_buffer, index=False, sheet_name='Save first')
+                d2.download_button(
+                    "Download Excel",
+                    data=excel_buffer.getvalue(),
+                    file_name='churnsense_save_first.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    use_container_width=True,
+                )
+            except Exception:
+                d2.caption("Excel export unavailable (openpyxl not installed).")
+    else:
+        st.info("Run the training pipeline to enable the save-first list.")
 
     st.divider()
 
@@ -1847,8 +1924,8 @@ with tab3:
     st.markdown("### Model Quality Snapshot")
 
     e1, e2 = st.columns(2)
-    e1.metric("Diagnostic Accuracy (ROC-AUC)", f"{st.session_state.get('roc_auc', 0.85):.2f}")
-    e2.metric("Detection Reliability (PR-AUC)", f"{st.session_state.get('pr_auc', 0.82):.2f}")
+    e1.metric("Diagnostic Accuracy (ROC-AUC)", fmt_metric(st.session_state.get('roc_auc'), digits=2))
+    e2.metric("Detection Reliability (PR-AUC)", fmt_metric(st.session_state.get('pr_auc'), digits=2))
     st.caption("PR-AUC is utilized as the primary KPI to ensure model reliability despite class imbalance in retail churn datasets.")
 
     if model_diagnostics is not None and model_diagnostics.get('model_comparison'):
@@ -1929,8 +2006,8 @@ with tab3:
         selected_metrics = model_diagnostics.get('selected_model_metrics', {})
         st.info(
             f"Selected model: **{selected_model_name}** | Threshold: **{model_diagnostics.get('selected_threshold', 0.5):.2f}** | "
-            f"Test ROC-AUC: **{selected_metrics.get('roc_auc', st.session_state.get('roc_auc', 0.85)):.3f}** | "
-            f"Test PR-AUC: **{selected_metrics.get('pr_auc', st.session_state.get('pr_auc', 0.82)):.3f}**"
+            f"Test ROC-AUC: **{fmt_metric(selected_metrics.get('roc_auc', st.session_state.get('roc_auc')), digits=3)}** | "
+            f"Test PR-AUC: **{fmt_metric(selected_metrics.get('pr_auc', st.session_state.get('pr_auc')), digits=3)}**"
         )
 
         calibration_curve_data = selected_metrics.get('calibration_curve', {})
@@ -2070,13 +2147,25 @@ with tab3:
 
     st.markdown("### **API Integration Layer**")
 
-    predict_payload = {
-        "customer_id": 12345,
-        "churn_probability": 0.82,
-        "predicted_clv": 1248.30,
-        "primary_driver": "Spend_Momentum",
-        "recommended_action": "High-Touch Recovery"
-    }
-    st.code(json.dumps(predict_payload, indent=2), language="json")
-
-    st.caption("This module demonstrates the platform's readiness for headless integration via FastAPI/REST endpoints.")
+    st.caption(
+        "The scoring API (`api.py`, FastAPI) returns this response for any customer. "
+        "The example below is generated live from the loaded model. Run `uvicorn api:app` and open `/docs` to try it."
+    )
+    if df is not None and model is not None and not df.empty and 'Expected_Revenue_at_Risk' in df.columns:
+        example_row = df.sort_values('Expected_Revenue_at_Risk', ascending=False).iloc[0]
+        example_features = pd.DataFrame(
+            [[float(example_row[column]) for column in MODEL_FEATURE_COLUMNS]], columns=MODEL_FEATURE_COLUMNS
+        )
+        example_probability = float(model.predict_proba(example_features)[:, 1][0])
+        example_reasons = explain_frame(get_shap_explainer(model), example_features, n=3, reference=df[MODEL_FEATURE_COLUMNS].median().to_dict())[0]
+        predict_payload = {
+            "customer_id": str(example_row['Customer_ID']),
+            "churn_probability": round(example_probability, 4),
+            "churn_flag": example_probability >= selected_threshold,
+            "reasons": [{"effect": r['effect'], "text": r['text']} for r in example_reasons],
+            "predicted_clv_90d": round(float(example_row['Predicted_CLV']), 2),
+            "recommended_action": str(example_row['Recommended_Action']),
+        }
+        st.code(json.dumps(predict_payload, indent=2), language="json")
+    else:
+        st.info("Load model artifacts to see a live example response.")

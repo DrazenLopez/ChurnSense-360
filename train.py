@@ -15,6 +15,7 @@ from sklearn.metrics import precision_recall_curve
 from evaluation import (
     baseline_report,
     cost_based_threshold,
+    integrity_report,
     lift_table,
     unseen_customer_report,
 )
@@ -45,6 +46,7 @@ OUTPUT_FILES = [
     'churn_model.pkl',
     'model_comparison.csv',
     'model_evaluation.json',
+    'model_integrity_audit.json',
 ]
 
 
@@ -232,6 +234,11 @@ def run_engine():
         ),
         'note': 'Cost values are placeholders; set CHURNSENSE_COST_MISSED_LEAVER / CHURNSENSE_COST_WASTED_OFFER.',
     }
+    integrity = integrity_report(
+        lambda: build_model_candidates(random_state=42)[selected_model_name],
+        X_train, y_train, X_test, y_test,
+    )
+    integrity['split_info'] = split_info
     print(f'Status: Extra evaluation done in {time.perf_counter() - stage_at:.1f}s', flush=True)
 
     print('Status: Fitting CLV model...', flush=True)
@@ -434,6 +441,9 @@ def run_engine():
 
     with open('model_evaluation.json', 'w') as f:
         json.dump(extended_evaluation, f, indent=2)
+
+    with open('model_integrity_audit.json', 'w') as f:
+        json.dump(integrity, f, indent=2)
 
     with open('training_baseline.json', 'w') as f:
         json.dump(
