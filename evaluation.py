@@ -142,3 +142,68 @@ def unseen_customer_report(
         'lift': lift_table(y, proba),
     })
     return report
+
+
+def integrity_report(
+    model_factory: Callable[[], object],
+    X_train: pd.DataFrame,
+    y_train,
+    X_test: pd.DataFrame,
+    y_test,
+    n_repeats: int = 3,
+    random_state: int = 42,
+) -> Dict[str, object]:
+    """Sanity checks that would expose leakage or a model resting on one or two fragile features.
+
+    * permutation importance: how much the test score drops when one feature is shuffled
+    * label-copy test: a feature that copies the answer MUST drive the score to ~1.0
+      (proves the evaluation would notice leakage)
+    * top-2 removed: retrain without the two most important features to see how much they carry
+    """
+    rng = np.random.default_rng(random_state)
+    y_test_arr = np.asarray(y_test).astype(int)
+
+    model = model_factory()
+    model.fit(X_train, y_train)
+    base = _safe_auc(y_test_arr, model.predict_proba(X_test)[:, 1])
+
+    importance = []
+    for feature in X_train.columns:
+        roc_drops, pr_drops = [], []
+        for _ in range(n_repeats):
+            shuffled = X_test.copy()
+            shuffled[feature] = rng.permutation(shuffled[feature].to_numpy())
+            scores = _safe_auc(y_test_arr, model.predict_proba(shuffled)[:, 1])
+            roc_drops.append(base['roc_auc'] - scores['roc_auc'])
+            pr_drops.append(base['pr_auc'] - scores['pr_auc'])
+        importance.append({
+            'feature': feature,
+            'delta_roc_auc': float(np.mean(roc_drops)),
+            'delta_pr_auc': float(np.mean(pr_drops)),
+        })
+    importance.sort(key=lambda row: row['delta_roc_auc'], reverse=True)
+
+    leaky_train, leaky_test = X_train.copy(), X_test.copy()
+    leaky_train['LABEL_COPY'] = np.asarray(y_train).astype(int)
+    leaky_test['LABEL_COPY'] = y_test_arr
+    leaky_model = model_factory()
+    leaky_model.fit(leaky_train, y_train)
+    leak_scores = _safe_auc(y_test_arr, leaky_model.predict_proba(leaky_test)[:, 1])
+
+    top_two = [row['feature'] for row in importance[:2]]
+    reduced_model = model_factory()
+    reduced_model.fit(X_train.drop(columns=top_two), y_train)
+    reduced_scores = _safe_auc(y_test_arr, reduced_model.predict_proba(X_test.drop(columns=top_two))[:, 1])
+
+    return {
+        'baseline_temporal_test': base,
+        'permutation_importance': importance,
+        'leak_stress_test': {
+            'with_explicit_label_copy_roc_auc': leak_scores['roc_auc'],
+            'with_explicit_label_copy_pr_auc': leak_scores['pr_auc'],
+            'without_top2_features_removed_roc_auc': reduced_scores['roc_auc'],
+            'without_top2_features_removed_pr_auc': reduced_scores['pr_auc'],
+            'removed_features': top_two,
+        },
+        'note': 'Customer-level holdout results are in model_evaluation.json under unseen_customers.',
+    }
